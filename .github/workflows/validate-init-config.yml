@@ -1,0 +1,123 @@
+# =============================================================================
+# Validate & Sync Init Configuration
+# =============================================================================
+# Ensures config/init.json is always in sync with config/tenants/*.json.
+#
+# Triggers:
+#   - Push to main branch (when tenant configs change)
+#   - Pull requests (validation only, no commit)
+#   - Manual dispatch
+#
+# Behavior:
+#   - Regenerates config/init.json from config/tenants/*.json
+#   - On main: commits the corrected init.json if it differs
+#   - On PRs: posts a review warning if S3 configs were changed
+# =============================================================================
+
+name: 🔄 Validate & Sync Init Config
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'config/tenants/**'
+      - 'config/init.json'
+      - 'scripts/merge-tenant-configs.py'
+  pull_request:
+    paths:
+      - 'config/tenants/**'
+      - 'config/init.json'
+      - 'scripts/merge-tenant-configs.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  validate:
+    name: 🔍 Validate init.json
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Regenerate init.json
+        run: python scripts/merge-tenant-configs.py
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet config/init.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "✅ config/init.json is up to date"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "⚠️  config/init.json is out of sync"
+            git diff config/init.json
+          fi
+
+      - name: Warn PR about config changes
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const outOfSync = '${{ steps.diff.outputs.changed }}' === 'true';
+            let body;
+            if (outOfSync) {
+              body = '⚠️ **S3-Konfiguration geändert — `init.json` ist nicht synchron**\n\n'
+                + 'Dieser PR ändert Tenant-Konfigurationen, aber `config/init.json` stimmt nicht mit '
+                + '`config/tenants/*.json` überein.\n\n'
+                + 'Bitte vor dem Merge prüfen und ggf. lokal ausführen:\n'
+                + '```bash\npython scripts/merge-tenant-configs.py\n```\n\n'
+                + '> Nach dem Merge auf `main` wird `init.json` automatisch korrigiert.';
+            } else {
+              body = '⚠️ **S3-Konfiguration geändert**\n\n'
+                + 'Dieser PR enthält Änderungen an der S3-Tenant-Konfiguration. '
+                + '`config/init.json` ist korrekt synchronisiert.\n\n'
+                + 'Bitte vor dem Merge sicherstellen, dass die Änderungen beabsichtigt sind '
+                + '(Buckets, Policies, Users, Groups).';
+            }
+
+            // Avoid duplicate comments
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user.login === 'github-actions[bot]' && c.body.includes('S3-Konfiguration geändert')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Commit corrected init.json
+        if: github.ref == 'refs/heads/main' && steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add config/init.json
+          git commit -m "chore: regenerate config/init.json from tenant configs"
+          git push

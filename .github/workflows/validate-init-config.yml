@@ -36,7 +36,7 @@ permissions:
 
 jobs:
   validate:
-    name: 🔍 Validate init.json
+    name: 🔍 Process init.json
     runs-on: ubuntu-latest
 
     steps:

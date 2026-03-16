@@ -191,7 +191,6 @@ services:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - MINIO_WAIT_TIMEOUT=${MINIO_WAIT_TIMEOUT:-60}
-      - MINIO_INIT_CONFIG=/app/userconfig/init.json
       # Pass through environment variables used in config JSON files
       # ── System (consumed by built-in default.json) ──────────────────
       - CONSOLE_USER=${CONSOLE_USER:-console-admin}
@@ -200,7 +199,7 @@ services:
       - MAIL_SIGNATURE_USER=${MAIL_SIGNATURE_USER}
       - MAIL_SIGNATURE_PASSWORD=${MAIL_SIGNATURE_PASSWORD}
     volumes:
-      - ./config:/app/userconfig:ro
+      - ./config/init.json:/app/config/init.json:ro
       - minio-credentials:/data/credentials
     depends_on:
       minio-server:

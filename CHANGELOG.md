@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/bauer-group/IP-OnlineAssetsShare/compare/v1.0.0...v1.0.1) (2026-03-16)
+
+### 🐛 Bug Fixes
+
+* **docker-compose:** removed MinIO console credentials ([3aa565a](https://github.com/bauer-group/IP-OnlineAssetsShare/commit/3aa565a7e3ecd03e2cd73f1683a348a6394f9833))
+
 ## [1.0.0](https://github.com/bauer-group/IP-OnlineAssetsShare/compare/v0.3.1...v1.0.0) (2026-03-16)
 
 ### ⚠ BREAKING CHANGES

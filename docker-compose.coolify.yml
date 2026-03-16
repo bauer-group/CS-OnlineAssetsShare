@@ -3,14 +3,16 @@
 # =============================================================================
 # Usage: Deploy via Coolify with environment variables
 #
-# Coolify uses Traefik internally — labels enable host-based routing.
+# Coolify manages Traefik routing automatically — it creates its own routers
+# based on the domain configured in the Coolify dashboard and chains our
+# middleware definitions into its auto-generated HTTPS routers.
 #
-# Access:
-#   - S3 API:  https://${S3_HOSTNAME}
-#   - Console: https://${S3_CONSOLE_HOSTNAME}
+# Configure in Coolify UI:
+#   - minio-server:  Domain = assets.bauer-group.com         Port = 9000
+#   - admin-console: Domain = console.assets.bauer-group.com  Port = 9090
 #
-# Required ENV: S3_HOSTNAME, S3_CONSOLE_HOSTNAME, MINIO_ROOT_PASSWORD,
-#               CONSOLE_PASSWORD, MAIL_SIGNATURE_USER, MAIL_SIGNATURE_PASSWORD
+# Required ENV: MINIO_ROOT_PASSWORD, CONSOLE_PASSWORD,
+#               MAIL_SIGNATURE_USER, MAIL_SIGNATURE_PASSWORD
 # =============================================================================
 
 
@@ -70,12 +72,12 @@ services:
       - "traefik.http.middlewares.${STACK_NAME:-online-assets}-nobuffer.buffering.maxResponseBodyBytes=0"
       - "traefik.http.middlewares.${STACK_NAME:-online-assets}-nobuffer.buffering.memResponseBodyBytes=0"
 
-      # ── S3 API Router — HTTP (redirect) ────────────────────────────────
+      # ── Router: S3 API — HTTP (redirect) ───────────────────────────────
       - "traefik.http.routers.${STACK_NAME:-online-assets}-s3-http.rule=Host(`${S3_HOSTNAME}`)"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-s3-http.entrypoints=web"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-s3-http.middlewares=${STACK_NAME:-online-assets}-redirect-to-secure"
 
-      # ── S3 API Router — HTTPS ──────────────────────────────────────────
+      # ── Router: S3 API — HTTPS ─────────────────────────────────────────
       - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.rule=Host(`${S3_HOSTNAME}`)"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.entrypoints=web-secure"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.tls=true"
@@ -83,7 +85,7 @@ services:
       - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.service=${STACK_NAME:-online-assets}-s3"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.middlewares=${STACK_NAME:-online-assets}-nobuffer"
 
-      # ── S3 Service ─────────────────────────────────────────────────────
+      # ── Service: S3 API ────────────────────────────────────────────────
       - "traefik.http.services.${STACK_NAME:-online-assets}-s3.loadBalancer.server.port=9000"
     networks:
       local:
@@ -110,19 +112,19 @@ services:
     labels:
       - "traefik.enable=true"
 
-      # ── Console Router — HTTP (redirect) ───────────────────────────────
+      # ── Router: Console — HTTP (redirect) ──────────────────────────────
       - "traefik.http.routers.${STACK_NAME:-online-assets}-console-http.rule=Host(`${S3_CONSOLE_HOSTNAME}`)"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-console-http.entrypoints=web"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-console-http.middlewares=${STACK_NAME:-online-assets}-redirect-to-secure"
 
-      # ── Console Router — HTTPS ─────────────────────────────────────────
+      # ── Router: Console — HTTPS ────────────────────────────────────────
       - "traefik.http.routers.${STACK_NAME:-online-assets}-console.rule=Host(`${S3_CONSOLE_HOSTNAME}`)"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-console.entrypoints=web-secure"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-console.tls=true"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-console.tls.certresolver=letsencrypt"
       - "traefik.http.routers.${STACK_NAME:-online-assets}-console.service=${STACK_NAME:-online-assets}-console"
 
-      # ── Console Service ────────────────────────────────────────────────
+      # ── Service: Console ───────────────────────────────────────────────
       - "traefik.http.services.${STACK_NAME:-online-assets}-console.loadBalancer.server.port=9090"
     networks:
       local:

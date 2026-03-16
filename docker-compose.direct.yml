@@ -1,0 +1,132 @@
+# =============================================================================
+# OnlineAssetsShare — Testing / Development (Direct Port Access)
+# =============================================================================
+# Usage: docker compose -f docker-compose.direct.yml up -d
+#
+# Features:
+#   - Single MinIO server with direct port binding
+#   - Admin console with full management UI
+#   - Init container for declarative bucket/user setup
+#   - IPv6 support
+#
+# Access:
+#   - S3 API:  http://localhost:${EXPOSED_API_PORT}
+#   - Console: http://localhost:${EXPOSED_CONSOLE_PORT}
+# =============================================================================
+
+
+### Service Templates ###
+x-minio-common: &minio-common
+  image: ${MINIO_IMAGE:-ghcr.io/bauer-group/cs-minio/minio}:${MINIO_VERSION:-latest}
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "50m"
+      max-file: "3"
+  command: server --address ":9000" --console-address ":9001" /data
+  environment:
+    - TZ=${TIME_ZONE:-Etc/UTC}
+    - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
+    - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    - MINIO_REGION_NAME=${MINIO_REGION:-eu-central-1}
+    # Disable built-in browser (admin console provides full management UI)
+    - MINIO_BROWSER=off
+  expose:
+    - 9000/tcp
+    - 9001/tcp
+  networks:
+    local:
+
+
+services:
+### Application Services ###
+  # MinIO S3 Server
+  minio-server:
+    <<: *minio-common
+    container_name: ${STACK_NAME:-online-assets}_SERVER
+    hostname: minio-server
+    volumes:
+      - minio-data:/data
+    ports:
+      - "${EXPOSED_API_PORT:-9000}:9000"
+
+
+### Admin Console ###
+  admin-console:
+    image: ${CONSOLE_IMAGE:-ghcr.io/bauer-group/cs-minio/minio-console}:${CONSOLE_VERSION:-latest}
+    container_name: ${STACK_NAME:-online-assets}_CONSOLE
+    hostname: admin-console
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+    environment:
+      - TZ=${TIME_ZONE:-Etc/UTC}
+      - CONSOLE_MINIO_SERVER=http://minio-server:9000
+      - CONSOLE_MINIO_REGION=${MINIO_REGION:-eu-central-1}
+      - CONSOLE_ACCESS_KEY=${CONSOLE_USER:-console-admin}
+      - CONSOLE_SECRET_KEY=${CONSOLE_PASSWORD}
+    expose:
+      - 9090/tcp
+    ports:
+      - "${EXPOSED_CONSOLE_PORT:-9001}:9090"
+    depends_on:
+      minio-server:
+        condition: service_healthy
+    networks:
+      local:
+
+
+### Initialization ###
+  # MinIO Init Container (runs on every start, idempotent)
+  minio-init:
+    image: ${MINIO_INIT_IMAGE:-ghcr.io/bauer-group/cs-minio/minio-init}:${MINIO_INIT_VERSION:-latest}
+    container_name: ${STACK_NAME:-online-assets}_INIT
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "1"
+    environment:
+      - TZ=${TIME_ZONE:-Etc/UTC}
+      - MINIO_ENDPOINT=http://minio-server:9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_WAIT_TIMEOUT=${MINIO_WAIT_TIMEOUT:-60}
+      # Pass through environment variables used in config JSON files
+      # ── System (consumed by built-in default.json) ──────────────────
+      - CONSOLE_USER=${CONSOLE_USER:-console-admin}
+      - CONSOLE_PASSWORD=${CONSOLE_PASSWORD}
+      # ── Tenant: Mail Signatures ─────────────────────────────────────
+      - MAIL_SIGNATURE_USER=${MAIL_SIGNATURE_USER}
+      - MAIL_SIGNATURE_PASSWORD=${MAIL_SIGNATURE_PASSWORD}
+    volumes:
+      - ./config/init.json:/app/config/init.json:ro
+      - minio-credentials:/data/credentials
+    depends_on:
+      minio-server:
+        condition: service_healthy
+    networks:
+      local:
+
+
+### Volumes ###
+volumes:
+  minio-data:
+    driver: local
+    name: ${STACK_NAME:-online-assets}-data
+  minio-credentials:
+    driver: local
+    name: ${STACK_NAME:-online-assets}-credentials
+
+
+### Networks ###
+networks:
+  local:
+    driver: bridge
+    name: ${STACK_NAME:-online-assets}
+    enable_ipv6: true

@@ -1,0 +1,50 @@
+{
+  "buckets": [
+    {
+      "name": "mail-signatures",
+      "region": "eu-central-1",
+      "versioning": false,
+      "policy": "public"
+    }
+  ],
+  "policies": [
+    {
+      "name": "pMailSignatures",
+      "statements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject",
+            "s3:ListBucket",
+            "s3:GetBucketLocation"
+          ],
+          "Resource": [
+            "arn:aws:s3:::mail-signatures",
+            "arn:aws:s3:::mail-signatures/*"
+          ]
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "access_key": "${MAIL_SIGNATURE_USER}",
+      "secret_key": "${MAIL_SIGNATURE_PASSWORD}",
+      "groups": [
+        "gMailSignatures"
+      ],
+      "policies": []
+    }
+  ],
+  "groups": [
+    {
+      "name": "gMailSignatures",
+      "policies": [
+        "pMailSignatures"
+      ]
+    }
+  ],
+  "service_accounts": []
+}

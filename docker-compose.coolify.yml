@@ -1,0 +1,177 @@
+# =============================================================================
+# OnlineAssetsShare — Production (Coolify)
+# =============================================================================
+# Usage: Deploy via Coolify with environment variables
+#
+# Coolify uses Traefik internally — labels enable host-based routing.
+#
+# Access:
+#   - S3 API:  https://${S3_HOSTNAME}
+#   - Console: https://${S3_CONSOLE_HOSTNAME}
+#
+# Required ENV: S3_HOSTNAME, S3_CONSOLE_HOSTNAME, MINIO_ROOT_PASSWORD,
+#               CONSOLE_PASSWORD, MAIL_SIGNATURE_USER, MAIL_SIGNATURE_PASSWORD
+# =============================================================================
+
+
+### Service Templates ###
+
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "50m"
+      max-file: "3"
+
+x-minio-common: &minio-common
+  image: ${MINIO_IMAGE:-ghcr.io/bauer-group/cs-minio/minio}:${MINIO_VERSION:-latest}
+  restart: unless-stopped
+  <<: *logging
+  command: server --address ":9000" --console-address ":9001" /data
+  environment:
+    - TZ=${TIME_ZONE:-Etc/UTC}
+    - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
+    - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    - MINIO_REGION_NAME=${MINIO_REGION:-eu-central-1}
+    - MINIO_DOMAIN=${S3_HOSTNAME}
+    - MINIO_BROWSER=off
+  expose:
+    - 9000/tcp
+    - 9001/tcp
+  networks:
+    local:
+
+
+services:
+
+  # ── MinIO S3 Server ────────────────────────────────────────────────────────
+  minio-server:
+    <<: *minio-common
+    container_name: ${STACK_NAME:-online-assets}_SERVER
+    hostname: minio-server
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    volumes:
+      - minio-data:/data
+    labels:
+      - "traefik.enable=true"
+
+      # ── Middleware: HTTP to HTTPS Redirect ──────────────────────────────
+      - "traefik.http.middlewares.${STACK_NAME:-online-assets}-redirect-to-secure.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.${STACK_NAME:-online-assets}-redirect-to-secure.redirectscheme.permanent=true"
+
+      # ── Middleware: No Buffering (large S3 uploads) ────────────────────
+      - "traefik.http.middlewares.${STACK_NAME:-online-assets}-nobuffer.buffering.maxRequestBodyBytes=0"
+      - "traefik.http.middlewares.${STACK_NAME:-online-assets}-nobuffer.buffering.memRequestBodyBytes=0"
+      - "traefik.http.middlewares.${STACK_NAME:-online-assets}-nobuffer.buffering.maxResponseBodyBytes=0"
+      - "traefik.http.middlewares.${STACK_NAME:-online-assets}-nobuffer.buffering.memResponseBodyBytes=0"
+
+      # ── S3 API Router — HTTP (redirect) ────────────────────────────────
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-s3-http.rule=Host(`${S3_HOSTNAME}`)"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-s3-http.entrypoints=web"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-s3-http.middlewares=${STACK_NAME:-online-assets}-redirect-to-secure"
+
+      # ── S3 API Router — HTTPS ──────────────────────────────────────────
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.rule=Host(`${S3_HOSTNAME}`)"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.entrypoints=web-secure"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.tls=true"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.service=${STACK_NAME:-online-assets}-s3"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-s3.middlewares=${STACK_NAME:-online-assets}-nobuffer"
+
+      # ── S3 Service ─────────────────────────────────────────────────────
+      - "traefik.http.services.${STACK_NAME:-online-assets}-s3.loadBalancer.server.port=9000"
+    networks:
+      local:
+
+
+  # ── MinIO Admin Console ────────────────────────────────────────────────────
+  admin-console:
+    image: ${CONSOLE_IMAGE:-ghcr.io/bauer-group/cs-minio/minio-console}:${CONSOLE_VERSION:-latest}
+    container_name: ${STACK_NAME:-online-assets}_CONSOLE
+    hostname: admin-console
+    restart: unless-stopped
+    <<: *logging
+    environment:
+      - TZ=${TIME_ZONE:-Etc/UTC}
+      - CONSOLE_MINIO_SERVER=http://minio-server:9000
+      - CONSOLE_MINIO_REGION=${MINIO_REGION:-eu-central-1}
+      - CONSOLE_ACCESS_KEY=${CONSOLE_USER:-console-admin}
+      - CONSOLE_SECRET_KEY=${CONSOLE_PASSWORD}
+    expose:
+      - 9090/tcp
+    depends_on:
+      minio-server:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+
+      # ── Console Router — HTTP (redirect) ───────────────────────────────
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-console-http.rule=Host(`${S3_CONSOLE_HOSTNAME}`)"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-console-http.entrypoints=web"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-console-http.middlewares=${STACK_NAME:-online-assets}-redirect-to-secure"
+
+      # ── Console Router — HTTPS ─────────────────────────────────────────
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-console.rule=Host(`${S3_CONSOLE_HOSTNAME}`)"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-console.entrypoints=web-secure"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-console.tls=true"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-console.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${STACK_NAME:-online-assets}-console.service=${STACK_NAME:-online-assets}-console"
+
+      # ── Console Service ────────────────────────────────────────────────
+      - "traefik.http.services.${STACK_NAME:-online-assets}-console.loadBalancer.server.port=9090"
+    networks:
+      local:
+
+
+  # ── MinIO Init (runs on every start, idempotent) ───────────────────────────
+  minio-init:
+    image: ${MINIO_INIT_IMAGE:-ghcr.io/bauer-group/cs-minio/minio-init}:${MINIO_INIT_VERSION:-latest}
+    container_name: ${STACK_NAME:-online-assets}_INIT
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "1"
+    environment:
+      - TZ=${TIME_ZONE:-Etc/UTC}
+      - MINIO_ENDPOINT=http://minio-server:9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_WAIT_TIMEOUT=${MINIO_WAIT_TIMEOUT:-60}
+      # ── System (consumed by built-in default.json) ──────────────────
+      - CONSOLE_USER=${CONSOLE_USER:-console-admin}
+      - CONSOLE_PASSWORD=${CONSOLE_PASSWORD}
+      # ── Tenant: Mail Signatures ─────────────────────────────────────
+      - MAIL_SIGNATURE_USER=${MAIL_SIGNATURE_USER}
+      - MAIL_SIGNATURE_PASSWORD=${MAIL_SIGNATURE_PASSWORD}
+    volumes:
+      - ./config/init.json:/app/config/init.json:ro
+      - minio-credentials:/data/credentials
+    depends_on:
+      minio-server:
+        condition: service_healthy
+    networks:
+      local:
+
+
+### Volumes ###
+volumes:
+  minio-data:
+    driver: local
+    name: ${STACK_NAME:-online-assets}-data
+  minio-credentials:
+    driver: local
+    name: ${STACK_NAME:-online-assets}-credentials
+
+
+### Networks ###
+networks:
+  local:
+    driver: bridge
+    name: ${STACK_NAME:-online-assets}

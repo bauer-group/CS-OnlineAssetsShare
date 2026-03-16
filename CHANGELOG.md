@@ -1,3 +1,9 @@
+## [0.3.0](https://github.com/bauer-group/IP-OnlineAssetsShare/compare/v0.2.0...v0.3.0) (2026-03-16)
+
+### 🚀 Features
+
+* init.json merge and validation CI/CD ([116fbbe](https://github.com/bauer-group/IP-OnlineAssetsShare/commit/116fbbed6290c61ff87313661d001cf34fa2612b))
+
 ## [0.2.0](https://github.com/bauer-group/IP-OnlineAssetsShare/compare/v0.1.0...v0.2.0) (2026-03-16)
 
 ### 🚀 Features

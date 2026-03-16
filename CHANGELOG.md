@@ -1,3 +1,9 @@
+## [0.3.1](https://github.com/bauer-group/IP-OnlineAssetsShare/compare/v0.3.0...v0.3.1) (2026-03-16)
+
+### ♻️ Refactoring
+
+* **docker:** mounted full config dir and added MINIO_INIT_CONFIG env ([e9811d6](https://github.com/bauer-group/IP-OnlineAssetsShare/commit/e9811d6b6ee38e6c90320c6e76dfbfe4d028d1c0))
+
 ## [0.3.0](https://github.com/bauer-group/IP-OnlineAssetsShare/compare/v0.2.0...v0.3.0) (2026-03-16)
 
 ### 🚀 Features

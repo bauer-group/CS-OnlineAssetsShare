@@ -1,3 +1,16 @@
+## [1.0.0](https://github.com/bauer-group/IP-OnlineAssetsShare/compare/v0.3.1...v1.0.0) (2026-03-16)
+
+### ⚠ BREAKING CHANGES
+
+* **compose:** Host-side mount point changed from ./config (directory)
+to ./config/init.json (single file). Deployments relying on additional
+files under ./config being available inside the container must update
+their volume configuration accordingly.
+
+### ♻️ Refactoring
+
+* **compose:** simplified MinIO config mount to single file ([2effd16](https://github.com/bauer-group/IP-OnlineAssetsShare/commit/2effd1675110c6660a6ec39f716a596450e8c707))
+
 ## [0.3.1](https://github.com/bauer-group/IP-OnlineAssetsShare/compare/v0.3.0...v0.3.1) (2026-03-16)
 
 ### ♻️ Refactoring

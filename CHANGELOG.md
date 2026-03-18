@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/bauer-group/CS-OnlineAssetsShare/compare/v1.0.1...v1.0.2) (2026-03-18)
+
+### 🐛 Bug Fixes
+
+* **config:** corrected region format in configuration ([608f9aa](https://github.com/bauer-group/CS-OnlineAssetsShare/commit/608f9aa71282f5d6c353cbfea77daa8ce0e3f922))
+
 ## [1.0.1](https://github.com/bauer-group/IP-OnlineAssetsShare/compare/v1.0.0...v1.0.1) (2026-03-16)
 
 ### 🐛 Bug Fixes

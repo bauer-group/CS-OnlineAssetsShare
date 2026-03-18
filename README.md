@@ -132,7 +132,7 @@ Anwendungen die diesen S3-Dienst nutzen, konfigurieren ihren S3-Client wie folgt
 S3_ENDPOINT_URL=https://assets.bauer-group.com
 S3_ACCESS_KEY_ID=<MAIL_SIGNATURE_USER>
 S3_SECRET_ACCESS_KEY=<MAIL_SIGNATURE_PASSWORD>
-S3_REGION=eu-central-1
+S3_REGION=eu-central1
 ```
 
 Path-Style Zugriff auf Objekte: `https://assets.bauer-group.com/<bucket>/<key>`

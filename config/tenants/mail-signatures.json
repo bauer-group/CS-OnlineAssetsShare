@@ -2,7 +2,7 @@
   "buckets": [
     {
       "name": "mail-signatures",
-      "region": "eu-central-1",
+      "region": "eu-central1",
       "versioning": false,
       "policy": "public"
     }

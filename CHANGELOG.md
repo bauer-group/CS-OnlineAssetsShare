@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/bauer-group/CS-OnlineAssetsShare/compare/v1.0.2...v1.0.3) (2026-03-18)
+
+### 🐛 Bug Fixes
+
+* **minio:** corrected region format from AWS to MinIO standard ([635f6eb](https://github.com/bauer-group/CS-OnlineAssetsShare/commit/635f6eb94a4cf6c0e5cbdcf88409109497080baa))
+
 ## [1.0.2](https://github.com/bauer-group/CS-OnlineAssetsShare/compare/v1.0.1...v1.0.2) (2026-03-18)
 
 ### 🐛 Bug Fixes

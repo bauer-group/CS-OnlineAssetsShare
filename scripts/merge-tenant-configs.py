@@ -13,7 +13,7 @@ import json
 import sys
 from pathlib import Path
 
-SECTIONS = ["buckets", "policies", "users", "groups", "service_accounts"]
+SECTIONS = ["buckets", "policies", "users", "groups", "service_accounts", "notifications"]
 
 project_dir = Path(__file__).resolve().parent.parent
 tenants_dir = project_dir / "config" / "tenants"

@@ -1,0 +1,42 @@
+# =============================================================================
+# Git Attributes — homogene Zeilenenden (LF)
+# =============================================================================
+# Erzwingt LF im Repository UND im Working Tree (auch unter Windows), damit
+# Container/Shell/YAML/Config-Dateien plattformübergreifend identisch sind.
+
+# Default: alle Textdateien als Text behandeln und auf LF normalisieren.
+* text=auto eol=lf
+
+# ── Explizit LF (Container, Config, Shell, Docs) ────────────────────────────
+*.yml         text eol=lf
+*.yaml        text eol=lf
+*.json        text eol=lf
+*.md          text eol=lf
+*.sh          text eol=lf
+*.env         text eol=lf
+*.example     text eol=lf
+*.conf        text eol=lf
+*.toml        text eol=lf
+*.ini         text eol=lf
+Dockerfile    text eol=lf
+.gitignore    text eol=lf
+.gitattributes text eol=lf
+.dockerignore text eol=lf
+
+# ── Windows-Skripte benötigen CRLF ──────────────────────────────────────────
+*.bat         text eol=crlf
+*.cmd         text eol=crlf
+*.ps1         text eol=crlf
+
+# ── Binärdateien (nie normalisieren) ────────────────────────────────────────
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.gif         binary
+*.ico         binary
+*.pdf         binary
+*.zip         binary
+*.gz          binary
+*.tar         binary
+*.woff        binary
+*.woff2       binary

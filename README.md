@@ -162,6 +162,7 @@ OnlineAssetsShare/
 ## Weiterführende Dokumentation
 
 - [Coolify Deployment](docs/coolify-deployment.md) — Config-Bind-Mounts aus dem Repo & init.json-Fehlerfix
+- [Cloudflare Caching](docs/cloudflare-caching.md) — Vary-Fix & Kurz-TTL für öffentliche Assets hinter Cloudflare
 - [Traefik Caching Middleware](docs/traefik-caching.md) — Optionale Cache-Control Header via Traefik
 - [Container-Solution/MinIO](https://github.com/bauer-group/CS-MinIO) — Image-Quellcode und Init-Container Dokumentation
 

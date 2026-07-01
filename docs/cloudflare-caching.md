@@ -36,13 +36,22 @@ versehentliches Caching der API-Endpunkte auszuschließen.
 
 ## Frische bei gleichem Dateinamen
 
-Nach einem Update erscheint der neue Stand **spätestens nach ~5 min** — dann revalidiert die
-Edge per `ETag` gegen MinIO (billig, meist `304`). Die Browser-TTL (1 min) steuert, wie schnell
-der einzelne Browser wieder nachfragt.
+**Ohne Purge (aktueller Stand):** kurze Edge-TTL (5 min). Nach einem Update erscheint der neue
+Stand **spätestens nach ~5 min** — dann revalidiert die Edge per `ETag` gegen MinIO (billig,
+meist `304`). Die Browser-TTL (1 min) steuert, wie schnell der einzelne Browser wieder nachfragt.
 
-Muss es **sofort** frisch sein → **Purge-on-Update**: MinIO-Bucket-Event
-(`s3:ObjectCreated:*`) → Webhook → Cloudflare Purge-API der Objekt-URL. Dann kann die TTL lang
-sein (voller Cache-Nutzen, sofort frisch).
+**Mit Purge-Worker (Upgrade):** Der **minio-worker** aus dem
+[MinIO-Stack](https://github.com/bauer-group/CS-MinIO) (HTTP-Receiver + Huey-Consumer, Provider
+Cloudflare/Bunny) purged bei put/delete die Cloudflare-Edge der geänderten Objekt-URL. Damit
+kann die **Edge-TTL lang** werden (z. B. 1 Tag) bei weiterhin **kurzer Browser-TTL** (Purge
+erreicht Browser nicht). Voraussetzung: Worker in die Compose aufnehmen (`WORKER_MODE`
+receiver/consumer), `WEBHOOK_AUTH_TOKEN` + `CF_PURGE_API_TOKEN` + `CF_ZONE_ID` setzen und einen
+`notifications`-Block via `config/tenants/_stack.json` generieren (Merge-Script kennt die
+Sektion bereits). Token/Zone-ID: Cloudflare-Dashboard → *Purge Cache*-Token bzw.
+Overview → API → Zone-ID (**nicht** Account-ID).
+
+⚠️ **Die lange Edge-TTL ist nur sicher, WENN der Worker purged.** Solange OnlineAssetsShare
+keinen Worker betreibt, bei der **kurzen** Edge-TTL (5 min) bleiben — sonst bis zu 1 Tag stale.
 
 > Optional zusätzlich `Cache-Control` pro Objekt beim Upload setzen (z. B.
 > `public, max-age=60, stale-while-revalidate=300`) — siehe [`traefik-caching.md`](./traefik-caching.md).

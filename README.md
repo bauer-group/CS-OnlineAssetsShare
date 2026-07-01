@@ -60,6 +60,9 @@ docker compose -f docker-compose.traefik.yml up -d
 # Coolify: Deploy via Coolify UI, Env-Vars im Dashboard setzen
 ```
 
+**Coolify-Details:** [docs/coolify-deployment.md](docs/coolify-deployment.md) — „Preserve
+Repository During Deployment" und der Fix für den `init.json`-Verzeichnis-Fehler.
+
 ## Multi-Tenant Konfiguration
 
 Jede Anwendung die den S3-Dienst nutzt, hat eine eigene JSON-Konfiguration unter `config/tenants/`. Der Init-Container provisioniert beim Start alle Ressourcen idempotent.
@@ -158,6 +161,7 @@ OnlineAssetsShare/
 
 ## Weiterführende Dokumentation
 
+- [Coolify Deployment](docs/coolify-deployment.md) — Config-Bind-Mounts aus dem Repo & init.json-Fehlerfix
 - [Traefik Caching Middleware](docs/traefik-caching.md) — Optionale Cache-Control Header via Traefik
 - [Container-Solution/MinIO](https://github.com/bauer-group/CS-MinIO) — Image-Quellcode und Init-Container Dokumentation
 

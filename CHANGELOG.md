@@ -1,3 +1,5 @@
+## [1.0.4](https://github.com/bauer-group/CS-OnlineAssetsShare/compare/v1.0.3...v1.0.4) (2026-07-01)
+
 ## [1.0.3](https://github.com/bauer-group/CS-OnlineAssetsShare/compare/v1.0.2...v1.0.3) (2026-03-18)
 
 ### 🐛 Bug Fixes
